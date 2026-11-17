@@ -365,7 +365,7 @@ jobs:
           sha        = "${{ steps.get_version.outputs.sha }}"
           builtAt    = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         } | ConvertTo-Json -Compress
-        [IO.File]::WriteAllText("${{ github.workspace }}d\Release\OptiScaler\OptiBuilder.version", $marker, (New-Object Text.UTF8Encoding($false)))
+        [IO.File]::WriteAllText("${{ github.workspace }}\x64\Release\a\OptiScaler\OptiBuilder.version", $marker, (New-Object Text.UTF8Encoding($false)))
         Write-Host "Version marker: $marker"
 
     - name: Compress the artifact
