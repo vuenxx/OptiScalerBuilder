@@ -5,10 +5,20 @@
 
 name: Run OptiScalerBuilder
 
+# V-Manager: yalnizca elle calisir (zamanlanmis derleme yok). Surum adini sen verirsin;
+# release once TASLAK (draft) olarak olusur, dener, sonra GitHub'da "Publish" dersin.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 */6 * * *"
+    inputs:
+      tag:
+        description: "Surum etiketi (or. 10.0.2)"
+        required: true
+        type: string
+      draft:
+        description: "Taslak olarak olustur (V-Manager taslaklari gormez)"
+        required: false
+        default: true
+        type: boolean
 #  push:
 #    branches: [ "master" ]
 #  pull_request:
@@ -29,7 +39,6 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    environment: Build
 
     steps:
     - uses: actions/checkout@v6
@@ -96,7 +105,7 @@ jobs:
         $sha = git rev-parse --short=8 HEAD
 
         # Construct the output filename with version, SHA and timestamp
-        $outputFileName = "OptiScaler_${version}_${sha}_${date}"
+        $outputFileName = "OptiScaler_${{ inputs.tag }}"
 
         # Output the generated filename
         Write-Output "Generated Filename: $outputFileName"
@@ -123,7 +132,7 @@ jobs:
 
         $content = $content.Replace(
         'windowTitle = StrFmt("%s - %s %s %s %s",',
-        'windowTitle = StrFmt("%s - %s %s%s%s | github.com/bygalacos/OptiScalerBuilder",'
+        'windowTitle = StrFmt("%s - %s %s%s%s | github.com/${{ github.repository }}",'
         )
 
         $content = $content.Replace(
@@ -339,7 +348,7 @@ jobs:
         Write-Host "dlssg_to_fsr3 version output set: $dlssg_to_fsr3_version"
 
         Write-Host "Downloading dlssg_to_fsr3" "$dlssg_to_fsr3_version"
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/bygalacos/OptiScalerBuilder/master/dlssg_to_fsr3/dlssg_to_fsr3_amd_is_better.zip" -OutFile "${{ github.workspace }}\dlssg_to_fsr3_amd_is_better.zip"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/dlssg_to_fsr3/dlssg_to_fsr3_amd_is_better.zip" -OutFile "${{ github.workspace }}\dlssg_to_fsr3_amd_is_better.zip"
         Write-Host "Size: $([math]::Round((Get-Item "${{ github.workspace }}\dlssg_to_fsr3_amd_is_better.zip").Length / 1MB, 2)) MB"
 
         Write-Host "Extracting dlssg_to_fsr3" "$dlssg_to_fsr3_version"
@@ -347,15 +356,15 @@ jobs:
       
     - name: Compress the artifact
       run: |
-        $zipName = "${{ steps.get_version.outputs.filename }}_bygalacos.7z"
+        $zipName = "${{ steps.get_version.outputs.filename }}.7z"
         7z a -r "${{ github.workspace }}\$zipName" "${{ github.workspace }}\x64\Release\a\*"
 
       continue-on-error: false
         
     - uses: actions/upload-artifact@v7.0.0
       with:
-        name: '${{ steps.get_version.outputs.filename }}_bygalacos'
-        path: '${{ github.workspace }}\${{ steps.get_version.outputs.filename }}_bygalacos.7z'
+        name: '${{ steps.get_version.outputs.filename }}'
+        path: '${{ github.workspace }}\${{ steps.get_version.outputs.filename }}.7z'
         archive: false
         compression-level: 0
         if-no-files-found: error
@@ -363,8 +372,8 @@ jobs:
     - name: Publish GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ steps.get_version.outputs.filename }}
-        name: ${{ steps.get_version.outputs.filename }}
+        tag_name: ${{ inputs.tag }}
+        name: ${{ inputs.tag }}
         body: |
           ## Current Build Info
 
@@ -378,9 +387,10 @@ jobs:
           | dlssg_to_fsr3 | ${{ steps.dlssg_to_fsr3.outputs.version }} |
 
           Build Package:
-          `${{ steps.get_version.outputs.filename }}_bygalacos.7z`
+          `${{ steps.get_version.outputs.filename }}.7z`
         files: |
-          ${{ github.workspace }}\${{ steps.get_version.outputs.filename }}_bygalacos.7z
+          ${{ github.workspace }}\${{ steps.get_version.outputs.filename }}.7z
+        draft: ${{ inputs.draft }}
         prerelease: false
         make_latest: true
         overwrite_files: true
