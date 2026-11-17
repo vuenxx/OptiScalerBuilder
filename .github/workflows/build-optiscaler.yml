@@ -354,6 +354,20 @@ jobs:
         Write-Host "Extracting dlssg_to_fsr3" "$dlssg_to_fsr3_version"
         Expand-Archive -Path "${{ github.workspace }}\dlssg_to_fsr3_amd_is_better.zip" -DestinationPath "${{ github.workspace }}\x64\Release\a\OptiScaler" -Force
       
+    - name: V-Manager - Write Version Marker
+      shell: powershell
+      run: |
+        # V-Manager kurulu surumu bu dosyadan okur (manifest detect.versionFile).
+        # OptiScaler.dll'in FileVersion'i her master derlemesinde ayni oldugu icin gerekli.
+        $marker = [ordered]@{
+          version    = "${{ inputs.tag }}"
+          optiscaler = "${{ steps.get_version.outputs.version }}"
+          sha        = "${{ steps.get_version.outputs.sha }}"
+          builtAt    = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        } | ConvertTo-Json -Compress
+        [IO.File]::WriteAllText("${{ github.workspace }}d\Release\OptiScaler\OptiBuilder.version", $marker, (New-Object Text.UTF8Encoding($false)))
+        Write-Host "Version marker: $marker"
+
     - name: Compress the artifact
       run: |
         $zipName = "${{ steps.get_version.outputs.filename }}.7z"
